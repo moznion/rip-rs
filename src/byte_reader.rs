@@ -1,4 +1,4 @@
-use crate::ParseError;
+use crate::parser::ParseError;
 
 pub(crate) fn read(mut cursor: usize, bytes: &[u8]) -> Result<(u8, usize), ParseError> {
     let b = match bytes

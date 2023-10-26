@@ -1,5 +1,6 @@
 use crate::parsed::Parsed;
-use crate::{byte_reader, ParseError};
+use crate::serializer::Serializable;
+use crate::{byte_reader, parser::ParseError};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Kind {

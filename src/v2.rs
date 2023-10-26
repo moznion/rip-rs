@@ -1,4 +1,4 @@
-use crate::{address_family, ipv4, metric, route_tag, PacketParsable, ParseError};
+use crate::{address_family, ipv4, metric, parser::PacketParsable, parser::ParseError, route_tag};
 use std::net::Ipv4Addr;
 
 #[derive(PartialEq, Debug)]
@@ -11,9 +11,11 @@ pub struct Entry {
     metric: u32,
 }
 
+// TODO impl Entry
+
 pub struct EntriesParser {}
 
-impl EntriesParser {
+impl PacketParsable<Entry> for EntriesParser {
     fn parse_entry<'a>(
         &'a self,
         mut cursor: usize,
@@ -57,46 +59,17 @@ impl EntriesParser {
     }
 }
 
-impl PacketParsable<Entry> for EntriesParser {
-    fn parse_entries(&self, mut cursor: usize, bytes: &[u8]) -> Result<Vec<Entry>, ParseError> {
-        let mut entries: Vec<Entry> = vec![];
-
-        if (bytes.len() - 1) <= cursor {
-            return Err(ParseError::EmptyRIPEntry(cursor));
-        }
-
-        loop {
-            if entries.len() >= 25 {
-                return Err(ParseError::MaxRIPEntriesNumberExceeded(cursor));
-            }
-
-            let res = match self.parse_entry(cursor, bytes) {
-                Ok(result) => result,
-                Err(e) => {
-                    return Err(e);
-                }
-            };
-            entries.push(res.0);
-            cursor = res.1;
-
-            if cursor >= bytes.len() {
-                break;
-            }
-        }
-
-        Ok(entries)
-    }
-}
 #[cfg(test)]
 mod tests {
     use crate::v2::{EntriesParser, Entry};
-    use crate::{address_family, PacketParsable};
+    use crate::{address_family, parser};
     use std::net::Ipv4Addr;
 
     #[test]
     fn test_parse_packet_for_single_entry() {
         let parser = EntriesParser {};
-        let result = parser.parse_entries(
+        let result = parser::parse_entries(
+            &parser,
             4,
             vec![
                 2, 2, 0, 0, //
@@ -128,7 +101,8 @@ mod tests {
     #[test]
     fn test_parse_packet_for_multiple_entry() {
         let parser = EntriesParser {};
-        let result = parser.parse_entries(
+        let result = parser::parse_entries(
+            &parser,
             4,
             vec![
                 2, 1, 0, 0, //

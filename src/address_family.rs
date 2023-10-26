@@ -1,5 +1,6 @@
+use crate::byte_reader;
 use crate::parsed::Parsed;
-use crate::{byte_reader, ParseError};
+use crate::parser::ParseError;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Identifier {

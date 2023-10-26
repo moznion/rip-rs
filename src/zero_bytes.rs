@@ -1,4 +1,4 @@
-use crate::{byte_reader, ParseError};
+use crate::{byte_reader, parser::ParseError};
 
 pub(crate) fn skip(
     num_of_zero_bytes: usize,

@@ -1,5 +1,5 @@
 use crate::parsed::Parsed;
-use crate::{byte_reader, ParseError};
+use crate::{byte_reader, parser::ParseError};
 use std::net::Ipv4Addr;
 
 pub(crate) fn parse(cursor: usize, bytes: &[u8]) -> Result<Parsed<Ipv4Addr>, ParseError> {
