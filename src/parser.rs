@@ -1,5 +1,7 @@
 use crate::{command, header, packet, v1, v2, version, zero_bytes};
 use thiserror::Error;
+use crate::packet::{PacketError};
+use crate::parser::ParseError::InvalidPacket;
 
 #[derive(Error, Debug)]
 pub enum ParseError {
@@ -19,6 +21,8 @@ pub enum ParseError {
     EmptyRIPEntry(usize),
     #[error("the number of RIP entries exceeds the maximum number. it allows to have the entries up to 25 in a packet; at {0} byte")]
     MaxRIPEntriesNumberExceeded(usize),
+    #[error("invalid packet: {0}")]
+    InvalidPacket(PacketError)
 }
 
 pub enum ParsedPacket {
@@ -51,11 +55,21 @@ pub fn parse(bytes: &[u8]) -> Result<ParsedPacket, ParseError> {
 
     match version_value {
         version::Version::Version1 => match parse_entries(&v1::EntriesParser {}, cursor, bytes) {
-            Ok(entries) => Ok(ParsedPacket::V1(packet::Packet::new(header, entries))),
+            Ok(entries) => {
+                match packet::Packet::make_v1_packet(header, entries) {
+                    Ok(packet) => Ok(ParsedPacket::V1(packet)),
+                    Err(e) => Err(InvalidPacket(e)),
+                }
+            },
             Err(e) => Err(e),
         },
         version::Version::Version2 => match parse_entries(&v2::EntriesParser {}, cursor, bytes) {
-            Ok(entries) => Ok(ParsedPacket::V2(packet::Packet::new(header, entries))),
+            Ok(entries) => {
+                match packet::Packet::make_v2_packet(header, entries) {
+                    Ok(packet) => Ok(ParsedPacket::V2(packet)),
+                    Err(e) => Err(InvalidPacket(e)),
+                }
+            },
             Err(e) => Err(e),
         },
         version::Version::MustBeDiscarded => Err(ParseError::MustBeDiscardedVersion(cursor)),
@@ -133,14 +147,14 @@ mod tests {
             }
         };
 
-        let expected_packet = Packet::new(
+        let expected_packet = Packet::make_v1_packet(
             Header::new(command::Kind::Response, version::Version::Version1),
             vec![Entry::new(
                 address_family::Identifier::IP,
                 Ipv4Addr::new(192, 0, 2, 100),
                 67305985,
             )],
-        );
+        ).unwrap();
         assert_eq!(packet, expected_packet);
     }
 }

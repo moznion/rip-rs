@@ -1,4 +1,5 @@
-use crate::{address_family, metric, parser::PacketParsable, parser::ParseError, zero_bytes};
+use crate::serializer::{Serializable, SerializeError};
+use crate::{address_family, ipv4, metric, parser::PacketParsable, parser::ParseError, zero_bytes};
 use std::net::Ipv4Addr;
 
 #[derive(PartialEq, Debug)]
@@ -19,6 +20,31 @@ impl Entry {
             ip_address,
             metric,
         }
+    }
+
+    pub fn get_address_family_identifier(&self) -> address_family::Identifier {
+        self.address_family_identifier
+    }
+
+    pub fn get_ip_address(&self) -> Ipv4Addr {
+        self.ip_address
+    }
+
+    pub fn get_metric(&self) -> u32 {
+        self.metric
+    }
+}
+
+impl Serializable for Entry {
+    fn to_bytes(&self) -> Result<Vec<u8>, SerializeError> {
+        Ok([
+            self.address_family_identifier.to_bytes()?,
+            vec![0, 0],
+            ipv4::to_bytes(self.ip_address)?,
+            vec![0, 0, 0, 0, 0, 0, 0, 0],
+            metric::to_bytes(self.metric)?,
+        ]
+        .concat())
     }
 }
 

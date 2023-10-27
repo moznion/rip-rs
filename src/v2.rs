@@ -1,3 +1,4 @@
+use crate::serializer::{Serializable, SerializeError};
 use crate::{address_family, ipv4, metric, parser::PacketParsable, parser::ParseError, route_tag};
 use std::net::Ipv4Addr;
 
@@ -11,7 +12,63 @@ pub struct Entry {
     metric: u32,
 }
 
-// TODO impl Entry
+impl Entry {
+    pub fn new(
+        address_family_identifier: address_family::Identifier,
+        route_tag: u16,
+        ip_address: Ipv4Addr,
+        subnet_mask: Ipv4Addr,
+        next_hop: Ipv4Addr,
+        metric: u32,
+    ) -> Self {
+        Entry {
+            address_family_identifier,
+            route_tag,
+            ip_address,
+            subnet_mask,
+            next_hop,
+            metric,
+        }
+    }
+
+    pub fn get_address_family_identifier(&self) -> address_family::Identifier {
+        self.address_family_identifier
+    }
+
+    pub fn get_route_tag(&self) -> u16 {
+        self.route_tag
+    }
+
+    pub fn get_ip_address(&self) -> Ipv4Addr {
+        self.ip_address
+    }
+
+    pub fn get_subnet_mask(&self) -> Ipv4Addr {
+        self.subnet_mask
+    }
+
+    pub fn get_next_hop(&self) -> Ipv4Addr {
+        self.next_hop
+    }
+
+    pub fn get_metric(&self) -> u32 {
+        self.metric
+    }
+}
+
+impl Serializable for Entry {
+    fn to_bytes(&self) -> Result<Vec<u8>, SerializeError> {
+        Ok([
+            self.address_family_identifier.to_bytes()?,
+            route_tag::to_bytes(self.route_tag)?,
+            ipv4::to_bytes(self.ip_address)?,
+            ipv4::to_bytes(self.subnet_mask)?,
+            ipv4::to_bytes(self.next_hop)?,
+            metric::to_bytes(self.metric)?,
+        ]
+        .concat())
+    }
+}
 
 pub struct EntriesParser {}
 
@@ -105,7 +162,7 @@ mod tests {
             &parser,
             4,
             vec![
-                2, 1, 0, 0, //
+                2, 2, 0, 0, //
                 0, 2, 1, 2, //
                 192, 0, 2, 100, //
                 255, 255, 255, 0, //

@@ -1,5 +1,6 @@
 use crate::parsed::Parsed;
-use crate::serializer::Serializable;
+use crate::serializer::SerializeError::UnknownCommandKind;
+use crate::serializer::{Serializable, SerializeError};
 use crate::{byte_reader, parser::ParseError};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -67,5 +68,14 @@ impl Kind {
         };
 
         Ok(Parsed::new(command, cursor))
+    }
+}
+
+impl Serializable for Kind {
+    fn to_bytes(&self) -> Result<Vec<u8>, SerializeError> {
+        match self.to_u8() {
+            Some(byte) => Ok(vec![byte]),
+            None => Err(UnknownCommandKind),
+        }
     }
 }

@@ -1,4 +1,5 @@
 use crate::parsed::Parsed;
+use crate::serializer::SerializeError;
 use crate::{byte_reader, parser::ParseError};
 
 pub(crate) fn parse(cursor: usize, bytes: &[u8]) -> Result<Parsed<u32>, ParseError> {
@@ -14,4 +15,13 @@ pub(crate) fn parse(cursor: usize, bytes: &[u8]) -> Result<Parsed<u32>, ParseErr
             + metric_fourth_byte as u32,
         cursor,
     ))
+}
+
+pub(crate) fn to_bytes(value: u32) -> Result<Vec<u8>, SerializeError> {
+    Ok(vec![
+        ((value & 0xff000000) >> 24) as u8,
+        ((value & 0x00ff0000) >> 16) as u8,
+        ((value & 0x0000ff00) >> 8) as u8,
+        (value & 0x000000ff) as u8,
+    ])
 }

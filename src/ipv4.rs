@@ -1,4 +1,5 @@
 use crate::parsed::Parsed;
+use crate::serializer::SerializeError;
 use crate::{byte_reader, parser::ParseError};
 use std::net::Ipv4Addr;
 
@@ -17,4 +18,8 @@ pub(crate) fn parse(cursor: usize, bytes: &[u8]) -> Result<Parsed<Ipv4Addr>, Par
         ),
         cursor,
     ))
+}
+
+pub(crate) fn to_bytes(ipv4: Ipv4Addr) -> Result<Vec<u8>, SerializeError> {
+    Ok(ipv4.octets().to_vec())
 }

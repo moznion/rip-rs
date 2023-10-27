@@ -8,7 +8,7 @@ pub mod packet;
 mod parsed;
 pub mod parser;
 mod route_tag;
-mod serializer;
+pub mod serializer;
 pub mod v1;
 pub mod v2;
 pub mod version;

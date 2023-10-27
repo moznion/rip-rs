@@ -1,6 +1,8 @@
 use crate::byte_reader;
 use crate::parsed::Parsed;
 use crate::parser::ParseError;
+use crate::serializer::{Serializable, SerializeError};
+use SerializeError::UnknownAddressFamilyIdentifier;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Identifier {
@@ -47,5 +49,18 @@ impl Identifier {
         };
 
         Ok(Parsed::new(address_family_identifier, cursor))
+    }
+}
+
+impl Serializable for Identifier {
+    fn to_bytes(&self) -> Result<Vec<u8>, SerializeError> {
+        let v = match self.to_u16() {
+            Some(v) => v,
+            None => {
+                return Err(UnknownAddressFamilyIdentifier);
+            }
+        };
+
+        Ok(vec![((v & 0xff00) >> 8) as u8, (v & 0x00ff) as u8])
     }
 }

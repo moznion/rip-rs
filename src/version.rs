@@ -1,3 +1,6 @@
+use crate::serializer::SerializeError::UnknownVersion;
+use crate::serializer::{Serializable, SerializeError};
+
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Version {
     MustBeDiscarded, // RFC1058
@@ -22,6 +25,15 @@ impl Version {
             Version::Version1 => Some(1),
             Version::Version2 => Some(2),
             Version::Unknown => None,
+        }
+    }
+}
+
+impl Serializable for Version {
+    fn to_bytes(&self) -> Result<Vec<u8>, SerializeError> {
+        match self.to_u8() {
+            Some(byte) => Ok(vec![byte]),
+            None => Err(UnknownVersion),
         }
     }
 }
