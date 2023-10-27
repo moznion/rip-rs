@@ -1,3 +1,4 @@
+use crate::route_tag::RouteTag;
 use crate::serializer::{Serializable, SerializeError};
 use crate::{address_family, ipv4, metric, parser::PacketParsable, parser::ParseError, route_tag};
 use std::net::Ipv4Addr;
@@ -5,7 +6,7 @@ use std::net::Ipv4Addr;
 #[derive(PartialEq, Debug)]
 pub struct Entry {
     address_family_identifier: address_family::Identifier,
-    route_tag: u16,
+    route_tag: RouteTag,
     ip_address: Ipv4Addr,
     subnet_mask: Ipv4Addr,
     next_hop: Ipv4Addr,
@@ -15,7 +16,7 @@ pub struct Entry {
 impl Entry {
     pub fn new(
         address_family_identifier: address_family::Identifier,
-        route_tag: u16,
+        route_tag: RouteTag,
         ip_address: Ipv4Addr,
         subnet_mask: Ipv4Addr,
         next_hop: Ipv4Addr,
@@ -35,7 +36,7 @@ impl Entry {
         self.address_family_identifier
     }
 
-    pub fn get_route_tag(&self) -> u16 {
+    pub fn get_route_tag(&self) -> RouteTag {
         self.route_tag
     }
 
