@@ -1,6 +1,6 @@
 name: Check
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   build:
@@ -10,10 +10,12 @@ jobs:
         os: [ubuntu-latest]
         rust: [stable, nightly]
     steps:
+    - uses: actions/checkout@v4
     - uses: hecrj/setup-rust-action@v2
       with:
         rust-version: ${{ matrix.rust }}
-    - uses: actions/checkout@v4
+    - name: install tarpaulin
+      run: cargo install cargo-tarpaulin
     - name: check
       run: |
         cargo clippy
