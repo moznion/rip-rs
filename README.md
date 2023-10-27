@@ -1,4 +1,4 @@
-# rip-rs
+# rip-rs [![Check](https://github.com/moznion/rip-rs/actions/workflows/check.yaml/badge.svg)](https://github.com/moznion/rip-rs/actions/workflows/check.yaml) [![codecov](https://codecov.io/gh/moznion/rip-rs/graph/badge.svg?token=sKZKBUAxJp)](https://codecov.io/gh/moznion/rip-rs)
 
 RIP v1/v2 protocol parser and serializer for Rust.
 
