@@ -1,4 +1,5 @@
 use crate::packet::PacketError;
+use crate::parser::ParseError::InvalidPacket;
 use crate::{header, packet, v1, v2, version};
 use thiserror::Error;
 
@@ -51,6 +52,34 @@ pub fn parse(bytes: &[u8]) -> Result<ParsedPacket, ParseError> {
     }
 }
 
+pub fn parse_v1(bytes: &[u8]) -> Result<packet::Packet<v1::Entry>, ParseError> {
+    let (header, cursor) = header::parse(0, bytes)?;
+
+    match parse_entries(&v1::EntriesParser {}, cursor, bytes) {
+        Ok(entries) => match packet::Packet::make_v1_packet(header, entries) {
+            Ok(p) => Ok(p),
+            Err(e) => {
+                return Err(InvalidPacket(e));
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
+pub fn parse_v2(bytes: &[u8]) -> Result<packet::Packet<v2::Entry>, ParseError> {
+    let (header, cursor) = header::parse(0, bytes)?;
+
+    match parse_entries(&v2::EntriesParser {}, cursor, bytes) {
+        Ok(entries) => match packet::Packet::make_v2_packet(header, entries) {
+            Ok(p) => Ok(p),
+            Err(e) => {
+                return Err(InvalidPacket(e));
+            }
+        },
+        Err(e) => Err(e),
+    }
+}
+
 pub(crate) fn parse_entries<T>(
     parser: &dyn PacketParsable<T>,
     mut cursor: usize,
@@ -90,7 +119,9 @@ pub(crate) trait PacketParsable<T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::packet::PacketError::VersionInHeaderConflicted;
     use crate::parser::ParseError;
+    use crate::parser::ParseError::{InsufficientInputBytesLength, InvalidPacket};
     use crate::{address_family, command, header::Header, packet::Packet, parser, v1, v2, version};
     use std::net::Ipv4Addr;
 
@@ -420,5 +451,130 @@ mod tests {
             result.unwrap_err(),
             ParseError::MaxRIPEntriesNumberExceeded(504)
         );
+    }
+
+    #[test]
+    fn test_parse_v1() {
+        let result = parser::parse_v1(
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+
+        let expected_packet = Packet::make_v1_packet(
+            Header::new(command::Kind::Response, version::Version::Version1),
+            vec![v1::Entry::new(
+                address_family::Identifier::IP,
+                Ipv4Addr::new(192, 0, 2, 100),
+                67305985,
+            )],
+        )
+        .unwrap();
+        assert_eq!(result.unwrap(), expected_packet);
+    }
+
+    #[test]
+    fn test_parse_v1_with_conflict_version() {
+        let result = parser::parse_v1(
+            vec![
+                2, 2, 0, 0, // the second byte is 2 (i.e version 2)
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(
+            result.unwrap_err(),
+            InvalidPacket(VersionInHeaderConflicted)
+        );
+    }
+
+    #[test]
+    fn test_parse_v1_with_insufficient_bytes() {
+        let result = parser::parse_v1(
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, // trailing byte is missing
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), InsufficientInputBytesLength(23));
+    }
+
+    #[test]
+    fn test_parse_v2() {
+        let result = parser::parse_v2(
+            vec![
+                2, 2, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                255, 255, 255, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+
+        let expected_packet = Packet::make_v2_packet(
+            Header::new(command::Kind::Response, version::Version::Version2),
+            vec![v2::Entry::new(
+                address_family::Identifier::IP,
+                0,
+                Ipv4Addr::new(192, 0, 2, 100),
+                Ipv4Addr::new(255, 255, 255, 0),
+                Ipv4Addr::new(0, 0, 0, 0),
+                67305985,
+            )],
+        )
+        .unwrap();
+        assert_eq!(result.unwrap(), expected_packet);
+    }
+
+    #[test]
+    fn test_parse_v2_with_conflict_version() {
+        let result = parser::parse_v2(
+            vec![
+                2, 1, 0, 0, // the second byte is 1 (i.e version 1)
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                255, 255, 255, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(
+            result.unwrap_err(),
+            InvalidPacket(VersionInHeaderConflicted)
+        );
+    }
+
+    #[test]
+    fn test_parse_v2_with_insufficient_bytes() {
+        let result = parser::parse_v2(
+            vec![
+                2, 2, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, // trailing byte is missing
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), InsufficientInputBytesLength(23));
     }
 }
