@@ -1,5 +1,5 @@
 use crate::packet::PacketError;
-use crate::{byte_reader, command, header, packet, v1, v2, version, zero_bytes};
+use crate::{header, packet, v1, v2, version};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -8,8 +8,8 @@ pub enum ParseError {
     InsufficientInputBytesLength(usize),
     #[error("unknown command kind {0} has given; at {1} byte")]
     UnknownCommandKind(u8, usize),
-    #[error("unknown version {0} has given; at {1} byte")]
-    UnknownVersion(u8, usize),
+    #[error("unknown version has given; at {0} byte")]
+    UnknownVersion(usize),
     #[error("version which indicates \"must be discarded\" has given; at {0} byte")]
     MustBeDiscardedVersion(usize),
     #[error("the byte must be zero but was {0} at {1} byte")]
@@ -31,18 +31,7 @@ pub enum ParsedPacket {
 }
 
 pub fn parse(bytes: &[u8]) -> Result<ParsedPacket, ParseError> {
-    let mut cursor: usize = 0;
-
-    let parsed = command::Kind::parse(cursor, bytes)?;
-    let command = *parsed.get_value();
-    cursor = parsed.get_cursor();
-
-    let (version_byte, mut cursor) = byte_reader::read(cursor, bytes)?;
-    let version_value = version::Version::from_u8(version_byte);
-
-    cursor = zero_bytes::skip(2, cursor, bytes)?;
-
-    let header = header::Header::new(command, version_value);
+    let (header, cursor) = header::parse(0, bytes)?;
 
     match header.get_version() {
         version::Version::Version1 => match parse_entries(&v1::EntriesParser {}, cursor, bytes) {
@@ -58,7 +47,7 @@ pub fn parse(bytes: &[u8]) -> Result<ParsedPacket, ParseError> {
             Err(e) => Err(e),
         },
         version::Version::MustBeDiscarded => Err(ParseError::MustBeDiscardedVersion(2)),
-        version::Version::Unknown => Err(ParseError::UnknownVersion(version_byte, 2)),
+        version::Version::Unknown => Err(ParseError::UnknownVersion(2)),
     }
 }
 
@@ -382,7 +371,7 @@ mod tests {
             .as_slice(),
         );
 
-        assert_eq!(result.unwrap_err(), ParseError::UnknownVersion(255, 2),);
+        assert_eq!(result.unwrap_err(), ParseError::UnknownVersion(2));
     }
 
     #[test]

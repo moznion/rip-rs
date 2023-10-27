@@ -17,3 +17,5 @@ impl<T> Parsed<T> {
         self.cursor
     }
 }
+
+pub type Parsed2<T> = (T, usize);
