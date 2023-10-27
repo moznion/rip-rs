@@ -1,7 +1,7 @@
+use crate::packet::PacketError;
+use crate::parser::ParseError::InvalidPacket;
 use crate::{command, header, packet, v1, v2, version, zero_bytes};
 use thiserror::Error;
-use crate::packet::{PacketError};
-use crate::parser::ParseError::InvalidPacket;
 
 #[derive(Error, Debug)]
 pub enum ParseError {
@@ -22,7 +22,7 @@ pub enum ParseError {
     #[error("the number of RIP entries exceeds the maximum number. it allows to have the entries up to 25 in a packet; at {0} byte")]
     MaxRIPEntriesNumberExceeded(usize),
     #[error("invalid packet: {0}")]
-    InvalidPacket(PacketError)
+    InvalidPacket(PacketError),
 }
 
 pub enum ParsedPacket {
@@ -55,20 +55,16 @@ pub fn parse(bytes: &[u8]) -> Result<ParsedPacket, ParseError> {
 
     match version_value {
         version::Version::Version1 => match parse_entries(&v1::EntriesParser {}, cursor, bytes) {
-            Ok(entries) => {
-                match packet::Packet::make_v1_packet(header, entries) {
-                    Ok(packet) => Ok(ParsedPacket::V1(packet)),
-                    Err(e) => Err(InvalidPacket(e)),
-                }
+            Ok(entries) => match packet::Packet::make_v1_packet(header, entries) {
+                Ok(packet) => Ok(ParsedPacket::V1(packet)),
+                Err(e) => Err(InvalidPacket(e)),
             },
             Err(e) => Err(e),
         },
         version::Version::Version2 => match parse_entries(&v2::EntriesParser {}, cursor, bytes) {
-            Ok(entries) => {
-                match packet::Packet::make_v2_packet(header, entries) {
-                    Ok(packet) => Ok(ParsedPacket::V2(packet)),
-                    Err(e) => Err(InvalidPacket(e)),
-                }
+            Ok(entries) => match packet::Packet::make_v2_packet(header, entries) {
+                Ok(packet) => Ok(ParsedPacket::V2(packet)),
+                Err(e) => Err(InvalidPacket(e)),
             },
             Err(e) => Err(e),
         },
@@ -116,12 +112,11 @@ pub(crate) trait PacketParsable<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::v1::Entry;
-    use crate::{address_family, command, header::Header, packet::Packet, parser, version};
+    use crate::{address_family, command, header::Header, packet::Packet, parser, v1, v2, version};
     use std::net::Ipv4Addr;
 
     #[test]
-    fn test_parse_v1_packet() {
+    fn test_parse_v1_packet_for_single_entry() {
         let result = parser::parse(
             vec![
                 2, 1, 0, 0, //
@@ -146,15 +141,183 @@ mod tests {
                 return;
             }
         };
-
         let expected_packet = Packet::make_v1_packet(
             Header::new(command::Kind::Response, version::Version::Version1),
-            vec![Entry::new(
+            vec![v1::Entry::new(
                 address_family::Identifier::IP,
                 Ipv4Addr::new(192, 0, 2, 100),
                 67305985,
             )],
-        ).unwrap();
+        )
+        .unwrap();
+        assert_eq!(packet, expected_packet);
+    }
+
+    #[test]
+    fn test_parse_v1_packet_for_multiple_entry() {
+        let result = parser::parse(
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+                0, 2, 0, 0, //
+                192, 0, 2, 101, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                0, 0, 0, 1, //
+                0, 2, 0, 0, //
+                192, 0, 2, 102, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                0, 0, 0, 2, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.is_ok(), true);
+
+        let packet = match result.unwrap() {
+            parser::ParsedPacket::V1(p) => p,
+            parser::ParsedPacket::V2(_) => {
+                assert_eq!(
+                    false, false,
+                    "unexpected because given packet is not the v2 packet"
+                );
+                return;
+            }
+        };
+        let expected_packet = Packet::make_v1_packet(
+            Header::new(command::Kind::Response, version::Version::Version1),
+            vec![
+                v1::Entry::new(
+                    address_family::Identifier::IP,
+                    Ipv4Addr::new(192, 0, 2, 100),
+                    67305985,
+                ),
+                v1::Entry::new(
+                    address_family::Identifier::IP,
+                    Ipv4Addr::new(192, 0, 2, 101),
+                    1,
+                ),
+                v1::Entry::new(
+                    address_family::Identifier::IP,
+                    Ipv4Addr::new(192, 0, 2, 102),
+                    2,
+                ),
+            ],
+        )
+        .unwrap();
+        assert_eq!(packet, expected_packet);
+    }
+
+    #[test]
+    fn test_parse_v2_packet_for_single_entry() {
+        let result = parser::parse(
+            vec![
+                2, 2, 0, 0, //
+                0, 2, 1, 2, //
+                192, 0, 2, 100, //
+                255, 255, 255, 0, //
+                192, 0, 2, 111, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+
+        assert_eq!(result.is_ok(), true);
+
+        let packet = match result.unwrap() {
+            parser::ParsedPacket::V1(_) => {
+                assert_eq!(
+                    false, false,
+                    "unexpected because given packet is not the v1 packet"
+                );
+                return;
+            }
+            parser::ParsedPacket::V2(p) => p,
+        };
+        let expected_packet = Packet::make_v2_packet(
+            Header::new(command::Kind::Response, version::Version::Version2),
+            vec![v2::Entry::new(
+                address_family::Identifier::IP,
+                258,
+                Ipv4Addr::new(192, 0, 2, 100),
+                Ipv4Addr::new(255, 255, 255, 0),
+                Ipv4Addr::new(192, 0, 2, 111),
+                67305985,
+            )],
+        )
+        .unwrap();
+        assert_eq!(packet, expected_packet);
+    }
+
+    #[test]
+    fn test_parse_v2_packet_for_multiple_entry() {
+        let result = parser::parse(
+            vec![
+                2, 2, 0, 0, //
+                0, 2, 1, 2, //
+                192, 0, 2, 100, //
+                255, 255, 255, 0, //
+                192, 0, 2, 200, //
+                4, 3, 2, 1, //
+                0, 2, 0, 1, //
+                192, 0, 2, 101, //
+                255, 255, 255, 0, //
+                192, 0, 2, 201, //
+                0, 0, 0, 1, //
+                0, 2, 0, 2, //
+                192, 0, 2, 102, //
+                255, 255, 255, 0, //
+                192, 0, 2, 202, //
+                0, 0, 0, 2, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.is_ok(), true);
+
+        let packet = match result.unwrap() {
+            parser::ParsedPacket::V1(_) => {
+                assert_eq!(
+                    false, false,
+                    "unexpected because given packet is not the v1 packet"
+                );
+                return;
+            }
+            parser::ParsedPacket::V2(p) => p,
+        };
+        let expected_packet = Packet::make_v2_packet(
+            Header::new(command::Kind::Response, version::Version::Version2),
+            vec![
+                v2::Entry::new(
+                    address_family::Identifier::IP,
+                    258,
+                    Ipv4Addr::new(192, 0, 2, 100),
+                    Ipv4Addr::new(255, 255, 255, 0),
+                    Ipv4Addr::new(192, 0, 2, 200),
+                    67305985,
+                ),
+                v2::Entry::new(
+                    address_family::Identifier::IP,
+                    1,
+                    Ipv4Addr::new(192, 0, 2, 101),
+                    Ipv4Addr::new(255, 255, 255, 0),
+                    Ipv4Addr::new(192, 0, 2, 201),
+                    1,
+                ),
+                v2::Entry::new(
+                    address_family::Identifier::IP,
+                    2,
+                    Ipv4Addr::new(192, 0, 2, 102),
+                    Ipv4Addr::new(255, 255, 255, 0),
+                    Ipv4Addr::new(192, 0, 2, 202),
+                    2,
+                ),
+            ],
+        )
+        .unwrap();
         assert_eq!(packet, expected_packet);
     }
 }
