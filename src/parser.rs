@@ -58,9 +58,7 @@ pub fn parse_v1(bytes: &[u8]) -> Result<packet::Packet<v1::Entry>, ParseError> {
     match parse_entries(&v1::EntriesParser {}, cursor, bytes) {
         Ok(entries) => match packet::Packet::make_v1_packet(header, entries) {
             Ok(p) => Ok(p),
-            Err(e) => {
-                return Err(InvalidPacket(e));
-            }
+            Err(e) => Err(InvalidPacket(e)),
         },
         Err(e) => Err(e),
     }
@@ -72,9 +70,7 @@ pub fn parse_v2(bytes: &[u8]) -> Result<packet::Packet<v2::Entry>, ParseError> {
     match parse_entries(&v2::EntriesParser {}, cursor, bytes) {
         Ok(entries) => match packet::Packet::make_v2_packet(header, entries) {
             Ok(p) => Ok(p),
-            Err(e) => {
-                return Err(InvalidPacket(e));
-            }
+            Err(e) => Err(InvalidPacket(e)),
         },
         Err(e) => Err(e),
     }
