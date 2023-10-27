@@ -37,3 +37,27 @@ impl Serializable for Version {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::serializer::Serializable;
+    use crate::serializer::SerializeError::UnknownVersion;
+    use crate::version;
+    use crate::version::Version::{MustBeDiscarded, Unknown, Version1, Version2};
+
+    #[test]
+    fn test_from_u8() {
+        assert_eq!(version::Version::from_u8(0), MustBeDiscarded);
+        assert_eq!(version::Version::from_u8(1), Version1);
+        assert_eq!(version::Version::from_u8(2), Version2);
+        assert_eq!(version::Version::from_u8(3), Unknown);
+    }
+
+    #[test]
+    fn test_to_bytes() {
+        assert_eq!(MustBeDiscarded.to_bytes().unwrap(), vec![0x00]);
+        assert_eq!(Version1.to_bytes().unwrap(), vec![0x01]);
+        assert_eq!(Version2.to_bytes().unwrap(), vec![0x02]);
+        assert_eq!(Unknown.to_bytes().unwrap_err(), UnknownVersion);
+    }
+}

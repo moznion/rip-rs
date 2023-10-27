@@ -76,6 +76,7 @@ impl PacketParsable<Entry> for EntriesParser {
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::ParseError::NotZeroByte;
     use crate::v1::{EntriesParser, Entry};
     use crate::{address_family, parser};
     use std::net::Ipv4Addr;
@@ -160,5 +161,159 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn test_parse_packet_which_has_not_zero_byte() {
+        let parser = EntriesParser {};
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 1, 0, // the third byte is not zero
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 7));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 1, // the fourth byte is not zero
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 8));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                1, 0, 0, 0, // the first byte is not zero
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 13));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 1, 0, 0, // the second byte is not zero
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 14));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 1, 0, // the third byte is not zero
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 15));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 1, // the fourth byte is not zero
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 16));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                1, 0, 0, 0, // the first byte is not zero
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 17));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 1, 0, 0, // the second byte is not zero
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 18));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 1, 0, // the third byte is not zero
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 19));
+
+        let result = parser::parse_entries(
+            &parser,
+            4,
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 1, // the fourth byte is not zero
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+        assert_eq!(result.unwrap_err(), NotZeroByte(1, 20));
     }
 }
