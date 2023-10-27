@@ -1,0 +1,25 @@
+name: Check
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        rust: [stable, nightly]
+    - uses: hecrj/setup-rust-action@v2
+      with:
+        rust-version: ${{ matrix.rust }}
+    - uses: actions/checkout@v4
+    - name: check
+      run: |
+        cargo clippy
+        cargo tarpaulin --out xml
+    - name: upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: cobertura.xml
+
