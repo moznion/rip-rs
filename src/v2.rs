@@ -1,3 +1,4 @@
+use crate::metric::Metric;
 use crate::route_tag::RouteTag;
 use crate::serializer::{Serializable, SerializeError};
 use crate::{address_family, ipv4, metric, parser::PacketParsable, parser::ParseError, route_tag};
@@ -10,7 +11,7 @@ pub struct Entry {
     ip_address: Ipv4Addr,
     subnet_mask: Ipv4Addr,
     next_hop: Ipv4Addr,
-    metric: u32,
+    metric: Metric,
 }
 
 impl Entry {
@@ -20,7 +21,7 @@ impl Entry {
         ip_address: Ipv4Addr,
         subnet_mask: Ipv4Addr,
         next_hop: Ipv4Addr,
-        metric: u32,
+        metric: Metric,
     ) -> Self {
         Entry {
             address_family_identifier,
@@ -52,7 +53,7 @@ impl Entry {
         self.next_hop
     }
 
-    pub fn get_metric(&self) -> u32 {
+    pub fn get_metric(&self) -> Metric {
         self.metric
     }
 }

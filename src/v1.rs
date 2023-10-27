@@ -1,3 +1,4 @@
+use crate::metric::Metric;
 use crate::serializer::{Serializable, SerializeError};
 use crate::{address_family, ipv4, metric, parser::PacketParsable, parser::ParseError, zero_bytes};
 use std::net::Ipv4Addr;
@@ -6,14 +7,14 @@ use std::net::Ipv4Addr;
 pub struct Entry {
     address_family_identifier: address_family::Identifier,
     ip_address: Ipv4Addr,
-    metric: u32,
+    metric: Metric,
 }
 
 impl Entry {
     pub fn new(
         address_family_identifier: address_family::Identifier,
         ip_address: Ipv4Addr,
-        metric: u32,
+        metric: Metric,
     ) -> Self {
         Entry {
             address_family_identifier,
@@ -30,7 +31,7 @@ impl Entry {
         self.ip_address
     }
 
-    pub fn get_metric(&self) -> u32 {
+    pub fn get_metric(&self) -> Metric {
         self.metric
     }
 }

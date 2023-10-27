@@ -3,7 +3,7 @@ mod byte_reader;
 pub mod command;
 pub mod header;
 mod ipv4;
-mod metric;
+pub mod metric;
 pub mod packet;
 pub mod parsed;
 pub mod parser;
