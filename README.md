@@ -88,6 +88,18 @@ fn main() {
 
 see also [examples](./examples).
 
+## TODO
+
+- [ ] RIPv2 cryptographic authentication support
+- [ ] RIPng support
+
+## References
+
+- [RFC 1058 - Routing Information Protocol](https://datatracker.ietf.org/doc/html/rfc1058)
+- [RFC 2453 - RIP Version 2](https://datatracker.ietf.org/doc/html/rfc2453)
+- [RFC 4822 - RIPv2 Cryptographic Authentication](https://datatracker.ietf.org/doc/html/rfc4822)
+- https://www.iana.org/assignments/rip-types/rip-types.xhtml
+
 ## Author
 
 moznion (<moznion@mail.moznion.net>)
