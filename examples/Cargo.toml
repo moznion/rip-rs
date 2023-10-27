@@ -1,0 +1,19 @@
+[package]
+name = "examples"
+version = "0.1.0"
+publish = false
+edition = "2021"
+license-file = "../LICENSE"
+repository = "https://github.com/moznion/rip-rs"
+
+[dev-dependencies]
+radius = { version = "0.1.0", path = "../" }
+
+[[example]]
+name = "parse"
+path = "parse.rs"
+
+[[example]]
+name = "serialize"
+path = "serialize.rs"
+
