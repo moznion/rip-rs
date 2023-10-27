@@ -53,31 +53,21 @@ pub struct EntriesParser {}
 impl PacketParsable<Entry> for EntriesParser {
     fn parse_entry<'a>(
         &'a self,
-        mut cursor: usize,
+        cursor: usize,
         bytes: &'a [u8],
     ) -> Result<(Entry, usize), ParseError> {
-        let parsed = address_family::Identifier::parse(cursor, bytes)?;
-        let address_family_identifier = *parsed.get_value();
-        cursor = parsed.get_cursor();
+        let (address_family_identifier, cursor) = address_family::Identifier::parse(cursor, bytes)?;
 
-        cursor = zero_bytes::skip(2, cursor, bytes)?;
+        let cursor = zero_bytes::skip(2, cursor, bytes)?;
 
-        let parsed = crate::ipv4::parse(cursor, bytes)?;
-        let ip_address = *parsed.get_value();
-        cursor = parsed.get_cursor();
+        let (ip_address, cursor) = ipv4::parse(cursor, bytes)?;
 
-        cursor = zero_bytes::skip(8, cursor, bytes)?;
+        let cursor = zero_bytes::skip(8, cursor, bytes)?;
 
-        let parsed_metric = metric::parse(cursor, bytes)?;
-        let metric = *parsed_metric.get_value();
-        cursor = parsed_metric.get_cursor();
+        let (metric, cursor) = metric::parse(cursor, bytes)?;
 
         Ok((
-            Entry {
-                address_family_identifier,
-                ip_address,
-                metric,
-            },
+            Entry::new(address_family_identifier, ip_address, metric),
             cursor,
         ))
     }

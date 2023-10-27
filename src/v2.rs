@@ -75,42 +75,25 @@ pub struct EntriesParser {}
 impl PacketParsable<Entry> for EntriesParser {
     fn parse_entry<'a>(
         &'a self,
-        mut cursor: usize,
+        cursor: usize,
         bytes: &'a [u8],
     ) -> Result<(Entry, usize), ParseError> {
-        let parsed = address_family::Identifier::parse(cursor, bytes)?;
-        let address_family_identifier = *parsed.get_value();
-        cursor = parsed.get_cursor();
-
-        let parsed = route_tag::parse(cursor, bytes)?;
-        let route_tag = *parsed.get_value();
-        cursor = parsed.get_cursor();
-
-        let parsed = ipv4::parse(cursor, bytes)?;
-        let ip_address = *parsed.get_value();
-        cursor = parsed.get_cursor();
-
-        let parsed = ipv4::parse(cursor, bytes)?;
-        let subnet_mask = *parsed.get_value();
-        cursor = parsed.get_cursor();
-
-        let parsed = ipv4::parse(cursor, bytes)?;
-        let next_hop = *parsed.get_value();
-        cursor = parsed.get_cursor();
-
-        let parsed = metric::parse(cursor, bytes)?;
-        let metric = *parsed.get_value();
-        cursor = parsed.get_cursor();
+        let (address_family_identifier, cursor) = address_family::Identifier::parse(cursor, bytes)?;
+        let (route_tag, cursor) = route_tag::parse(cursor, bytes)?;
+        let (ip_address, cursor) = ipv4::parse(cursor, bytes)?;
+        let (subnet_mask, cursor) = ipv4::parse(cursor, bytes)?;
+        let (next_hop, cursor) = ipv4::parse(cursor, bytes)?;
+        let (metric, cursor) = metric::parse(cursor, bytes)?;
 
         Ok((
-            Entry {
+            Entry::new(
                 address_family_identifier,
                 route_tag,
                 ip_address,
                 subnet_mask,
                 next_hop,
                 metric,
-            },
+            ),
             cursor,
         ))
     }

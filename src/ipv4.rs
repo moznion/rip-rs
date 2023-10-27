@@ -9,7 +9,7 @@ pub(crate) fn parse(cursor: usize, bytes: &[u8]) -> Result<Parsed<Ipv4Addr>, Par
     let (ipaddr_third_octet, cursor) = byte_reader::read(cursor, bytes)?;
     let (ipaddr_fourth_octet, cursor) = byte_reader::read(cursor, bytes)?;
 
-    Ok(Parsed::new(
+    Ok((
         Ipv4Addr::new(
             ipaddr_first_octet,
             ipaddr_second_octet,

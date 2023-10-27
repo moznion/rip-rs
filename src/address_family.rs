@@ -48,7 +48,7 @@ impl Identifier {
             _identifier => _identifier,
         };
 
-        Ok(Parsed::new(address_family_identifier, cursor))
+        Ok((address_family_identifier, cursor))
     }
 }
 
@@ -72,15 +72,15 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let parsed = Identifier::parse(0, vec![0x00, 0x00].as_slice()).unwrap();
-        assert_eq!(*parsed.get_value(), Identifier::Unspecified);
-        assert_eq!(parsed.get_cursor(), 2);
-        let parsed = Identifier::parse(0, vec![0x00, 0x02].as_slice()).unwrap();
-        assert_eq!(*parsed.get_value(), Identifier::IP);
-        assert_eq!(parsed.get_cursor(), 2);
-        let parsed = Identifier::parse(0, vec![0xff, 0xff].as_slice()).unwrap();
-        assert_eq!(*parsed.get_value(), Identifier::AuthenticationPresent);
-        assert_eq!(parsed.get_cursor(), 2);
+        let (identifier, cursor) = Identifier::parse(0, vec![0x00, 0x00].as_slice()).unwrap();
+        assert_eq!(identifier, Identifier::Unspecified);
+        assert_eq!(cursor, 2);
+        let (identifier, cursor) = Identifier::parse(0, vec![0x00, 0x02].as_slice()).unwrap();
+        assert_eq!(identifier, Identifier::IP);
+        assert_eq!(cursor, 2);
+        let (identifier, cursor) = Identifier::parse(0, vec![0xff, 0xff].as_slice()).unwrap();
+        assert_eq!(identifier, Identifier::AuthenticationPresent);
+        assert_eq!(cursor, 2);
 
         let result = Identifier::parse(0, vec![0x00, 0x01].as_slice());
         assert_eq!(

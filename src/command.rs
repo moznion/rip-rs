@@ -67,7 +67,7 @@ impl Kind {
             _command => _command,
         };
 
-        Ok(Parsed::new(command, cursor))
+        Ok((command, cursor))
     }
 }
 
@@ -88,42 +88,42 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let result = Kind::parse(0, vec![0x00].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::Invalid);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x01].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::Request);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x02].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::Response);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x03].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::TraceOn);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x04].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::TraceOff);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x05].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::Reserved);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x06].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::TriggeredRequest);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x07].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::TriggeredResponse);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x08].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::TriggeredAcknowledgement);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x09].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::UpdateRequest);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x0a].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::UpdateResponse);
-        assert_eq!(result.get_cursor(), 1);
-        let result = Kind::parse(0, vec![0x0b].as_slice()).unwrap();
-        assert_eq!(*result.get_value(), Kind::UpdateAcknowledge);
-        assert_eq!(result.get_cursor(), 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x00].as_slice()).unwrap();
+        assert_eq!(kind, Kind::Invalid);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x01].as_slice()).unwrap();
+        assert_eq!(kind, Kind::Request);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x02].as_slice()).unwrap();
+        assert_eq!(kind, Kind::Response);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x03].as_slice()).unwrap();
+        assert_eq!(kind, Kind::TraceOn);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x04].as_slice()).unwrap();
+        assert_eq!(kind, Kind::TraceOff);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x05].as_slice()).unwrap();
+        assert_eq!(kind, Kind::Reserved);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x06].as_slice()).unwrap();
+        assert_eq!(kind, Kind::TriggeredRequest);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x07].as_slice()).unwrap();
+        assert_eq!(kind, Kind::TriggeredResponse);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x08].as_slice()).unwrap();
+        assert_eq!(kind, Kind::TriggeredAcknowledgement);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x09].as_slice()).unwrap();
+        assert_eq!(kind, Kind::UpdateRequest);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x0a].as_slice()).unwrap();
+        assert_eq!(kind, Kind::UpdateResponse);
+        assert_eq!(cursor, 1);
+        let (kind, cursor) = Kind::parse(0, vec![0x0b].as_slice()).unwrap();
+        assert_eq!(kind, Kind::UpdateAcknowledge);
+        assert_eq!(cursor, 1);
 
         assert_eq!(
             Kind::parse(0, vec![0xff].as_slice()).unwrap_err(),

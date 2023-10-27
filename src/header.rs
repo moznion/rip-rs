@@ -1,4 +1,4 @@
-use crate::parsed::Parsed2;
+use crate::parsed::Parsed;
 use crate::parser::ParseError;
 use crate::serializer::{Serializable, SerializeError};
 use crate::{byte_reader, command, header, version, zero_bytes};
@@ -9,16 +9,11 @@ pub struct Header {
     version: version::Version,
 }
 
-pub fn parse(cursor: usize, bytes: &[u8]) -> Result<Parsed2<Header>, ParseError> {
-    let parsed = command::Kind::parse(cursor, bytes)?;
-    let command = *parsed.get_value();
-    let cursor = parsed.get_cursor();
-
+pub fn parse(cursor: usize, bytes: &[u8]) -> Result<Parsed<Header>, ParseError> {
+    let (command, cursor) = command::Kind::parse(cursor, bytes)?;
     let (version_byte, cursor) = byte_reader::read(cursor, bytes)?;
     let version_value = version::Version::from_u8(version_byte);
-
     let cursor = zero_bytes::skip(2, cursor, bytes)?;
-
     let header = header::Header::new(command, version_value);
 
     Ok((header, cursor))
