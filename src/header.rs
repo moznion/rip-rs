@@ -1,5 +1,5 @@
-use crate::parsed::Parsed;
 use crate::parser::ParseError;
+use crate::parser::Parsed;
 use crate::serializer::{Serializable, SerializeError};
 use crate::{byte_reader, command, version, zero_bytes};
 

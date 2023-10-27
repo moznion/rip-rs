@@ -5,7 +5,6 @@ pub mod header;
 mod ipv4;
 pub mod metric;
 pub mod packet;
-pub mod parsed;
 pub mod parser;
 pub mod route_tag;
 pub mod serializer;

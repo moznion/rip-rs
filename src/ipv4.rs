@@ -1,4 +1,4 @@
-use crate::parsed::Parsed;
+use crate::parser::Parsed;
 use crate::serializer::SerializeError;
 use crate::{byte_reader, parser::ParseError};
 use std::net::Ipv4Addr;

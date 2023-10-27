@@ -1,4 +1,4 @@
-use crate::parsed::Parsed;
+use crate::parser::Parsed;
 use crate::serializer::SerializeError::UnknownCommandKind;
 use crate::serializer::{Serializable, SerializeError};
 use crate::{byte_reader, parser::ParseError};

@@ -1,6 +1,6 @@
 use crate::byte_reader;
-use crate::parsed::Parsed;
 use crate::parser::ParseError;
+use crate::parser::Parsed;
 use crate::serializer::{Serializable, SerializeError};
 use SerializeError::UnknownAddressFamilyIdentifier;
 

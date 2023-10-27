@@ -31,6 +31,9 @@ pub enum ParsedPacket {
     V2(packet::Packet<v2::Entry>),
 }
 
+/// Parsed is a tuple type which has a T-typed value end a cursor for bytes reading.
+pub type Parsed<T> = (T, usize);
+
 pub fn parse(bytes: &[u8]) -> Result<ParsedPacket, ParseError> {
     let (header, cursor) = header::parse(0, bytes)?;
 
