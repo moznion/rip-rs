@@ -59,12 +59,12 @@ impl Entry {
 impl Serializable for Entry {
     fn to_bytes(&self) -> Result<Vec<u8>, SerializeError> {
         Ok([
-            self.address_family_identifier.to_bytes()?,
-            route_tag::to_bytes(self.route_tag)?,
-            ipv4::to_bytes(self.ip_address)?,
-            ipv4::to_bytes(self.subnet_mask)?,
-            ipv4::to_bytes(self.next_hop)?,
-            metric::to_bytes(self.metric)?,
+            self.get_address_family_identifier().to_bytes()?,
+            route_tag::to_bytes(self.get_route_tag())?,
+            ipv4::to_bytes(self.get_ip_address())?,
+            ipv4::to_bytes(self.get_subnet_mask())?,
+            ipv4::to_bytes(self.get_next_hop())?,
+            metric::to_bytes(self.get_metric())?,
         ]
         .concat())
     }

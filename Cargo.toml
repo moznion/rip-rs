@@ -1,5 +1,5 @@
 [package]
-name = "rip-rs"
+name = "rip"
 version = "0.1.0"
 edition = "2021"
 

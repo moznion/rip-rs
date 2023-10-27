@@ -3,7 +3,7 @@ use crate::v1;
 use crate::v2;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum SerializeError {
     #[error("encountered the unknown command kind")]
     UnknownCommandKind,

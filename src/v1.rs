@@ -38,11 +38,11 @@ impl Entry {
 impl Serializable for Entry {
     fn to_bytes(&self) -> Result<Vec<u8>, SerializeError> {
         Ok([
-            self.address_family_identifier.to_bytes()?,
+            self.get_address_family_identifier().to_bytes()?,
             vec![0, 0],
-            ipv4::to_bytes(self.ip_address)?,
+            ipv4::to_bytes(self.get_ip_address())?,
             vec![0, 0, 0, 0, 0, 0, 0, 0],
-            metric::to_bytes(self.metric)?,
+            metric::to_bytes(self.get_metric())?,
         ]
         .concat())
     }

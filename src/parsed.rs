@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub(crate) struct Parsed<T> {
     value: T,
     cursor: usize,

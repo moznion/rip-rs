@@ -79,3 +79,76 @@ impl Serializable for Kind {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::command::Kind;
+    use crate::parser::ParseError;
+    use crate::serializer::{Serializable, SerializeError};
+
+    #[test]
+    fn test_parse() {
+        let result = Kind::parse(0, vec![0x00].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::Invalid);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x01].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::Request);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x02].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::Response);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x03].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::TraceOn);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x04].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::TraceOff);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x05].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::Reserved);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x06].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::TriggeredRequest);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x07].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::TriggeredResponse);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x08].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::TriggeredAcknowledgement);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x09].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::UpdateRequest);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x0a].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::UpdateResponse);
+        assert_eq!(result.get_cursor(), 1);
+        let result = Kind::parse(0, vec![0x0b].as_slice()).unwrap();
+        assert_eq!(*result.get_value(), Kind::UpdateAcknowledge);
+        assert_eq!(result.get_cursor(), 1);
+
+        assert_eq!(
+            Kind::parse(0, vec![0xff].as_slice()).unwrap_err(),
+            ParseError::UnknownCommandKind(0xff, 1)
+        );
+    }
+
+    #[test]
+    fn test_to_bytes() {
+        assert_eq!(Kind::Invalid.to_bytes().unwrap(), vec![0]);
+        assert_eq!(Kind::Request.to_bytes().unwrap(), vec![1]);
+        assert_eq!(Kind::Response.to_bytes().unwrap(), vec![2]);
+        assert_eq!(Kind::TraceOn.to_bytes().unwrap(), vec![3]);
+        assert_eq!(Kind::TraceOff.to_bytes().unwrap(), vec![4]);
+        assert_eq!(Kind::Reserved.to_bytes().unwrap(), vec![5]);
+        assert_eq!(Kind::TriggeredRequest.to_bytes().unwrap(), vec![6]);
+        assert_eq!(Kind::TriggeredResponse.to_bytes().unwrap(), vec![7]);
+        assert_eq!(Kind::TriggeredAcknowledgement.to_bytes().unwrap(), vec![8]);
+        assert_eq!(Kind::UpdateRequest.to_bytes().unwrap(), vec![9]);
+        assert_eq!(Kind::UpdateResponse.to_bytes().unwrap(), vec![10]);
+        assert_eq!(Kind::UpdateAcknowledge.to_bytes().unwrap(), vec![11]);
+
+        assert_eq!(
+            Kind::Unknown.to_bytes().unwrap_err(),
+            SerializeError::UnknownCommandKind
+        );
+    }
+}

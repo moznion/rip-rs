@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rip-rs"
+name = "rip"
 version = "0.1.0"
 dependencies = [
  "thiserror",

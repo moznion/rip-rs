@@ -1,9 +1,8 @@
 use crate::packet::PacketError;
-use crate::parser::ParseError::InvalidPacket;
-use crate::{command, header, packet, v1, v2, version, zero_bytes};
+use crate::{byte_reader, command, header, packet, v1, v2, version, zero_bytes};
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum ParseError {
     #[error("insufficient input bytes length; at {0} byte")]
     InsufficientInputBytesLength(usize),
@@ -25,6 +24,7 @@ pub enum ParseError {
     InvalidPacket(PacketError),
 }
 
+#[derive(Debug)]
 pub enum ParsedPacket {
     V1(packet::Packet<v1::Entry>),
     V2(packet::Packet<v2::Entry>),
@@ -37,39 +37,28 @@ pub fn parse(bytes: &[u8]) -> Result<ParsedPacket, ParseError> {
     let command = *parsed.get_value();
     cursor = parsed.get_cursor();
 
-    let version_byte = match bytes
-        .get(cursor)
-        .ok_or(ParseError::InsufficientInputBytesLength(cursor))
-    {
-        Ok(b) => *b,
-        Err(e) => {
-            return Err(e);
-        }
-    };
+    let (version_byte, mut cursor) = byte_reader::read(cursor, bytes)?;
     let version_value = version::Version::from_u8(version_byte);
-    cursor += 1;
 
     cursor = zero_bytes::skip(2, cursor, bytes)?;
 
     let header = header::Header::new(command, version_value);
 
-    match version_value {
+    match header.get_version() {
         version::Version::Version1 => match parse_entries(&v1::EntriesParser {}, cursor, bytes) {
-            Ok(entries) => match packet::Packet::make_v1_packet(header, entries) {
-                Ok(packet) => Ok(ParsedPacket::V1(packet)),
-                Err(e) => Err(InvalidPacket(e)),
-            },
+            Ok(entries) => Ok(ParsedPacket::V1(
+                packet::Packet::make_v1_packet(header, entries).unwrap(),
+            )),
             Err(e) => Err(e),
         },
         version::Version::Version2 => match parse_entries(&v2::EntriesParser {}, cursor, bytes) {
-            Ok(entries) => match packet::Packet::make_v2_packet(header, entries) {
-                Ok(packet) => Ok(ParsedPacket::V2(packet)),
-                Err(e) => Err(InvalidPacket(e)),
-            },
+            Ok(entries) => Ok(ParsedPacket::V2(
+                packet::Packet::make_v2_packet(header, entries).unwrap(),
+            )),
             Err(e) => Err(e),
         },
-        version::Version::MustBeDiscarded => Err(ParseError::MustBeDiscardedVersion(cursor)),
-        version::Version::Unknown => Err(ParseError::UnknownCommandKind(version_byte, cursor)),
+        version::Version::MustBeDiscarded => Err(ParseError::MustBeDiscardedVersion(2)),
+        version::Version::Unknown => Err(ParseError::UnknownVersion(version_byte, 2)),
     }
 }
 
@@ -112,6 +101,7 @@ pub(crate) trait PacketParsable<T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::ParseError;
     use crate::{address_family, command, header::Header, packet::Packet, parser, v1, v2, version};
     use std::net::Ipv4Addr;
 
@@ -319,5 +309,127 @@ mod tests {
         )
         .unwrap();
         assert_eq!(packet, expected_packet);
+    }
+
+    #[test]
+    fn test_parse_insufficient_length_bytes_for_v1() {
+        let result = parser::parse(
+            vec![
+                2, 1, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                0, 0, 0, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, // missing a trailing byte
+            ]
+            .as_slice(),
+        );
+
+        assert_eq!(
+            result.unwrap_err(),
+            ParseError::InsufficientInputBytesLength(23)
+        );
+    }
+
+    #[test]
+    fn test_parse_insufficient_length_bytes_for_v2() {
+        let result = parser::parse(
+            vec![
+                2, 2, 0, 0, //
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                255, 255, 255, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, // missing a trailing byte
+            ]
+            .as_slice(),
+        );
+
+        assert_eq!(
+            result.unwrap_err(),
+            ParseError::InsufficientInputBytesLength(23)
+        );
+    }
+
+    #[test]
+    fn test_parse_bytes_must_be_discarded() {
+        let result = parser::parse(
+            vec![
+                2, 0, 0, 0, // version byte is 0 (must be discarded)
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                255, 255, 255, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+
+        assert_eq!(result.unwrap_err(), ParseError::MustBeDiscardedVersion(2),);
+    }
+
+    #[test]
+    fn test_parse_bytes_of_unknown_version() {
+        let result = parser::parse(
+            vec![
+                2, 255, 0, 0, // version byte is 255 (unknown)
+                0, 2, 0, 0, //
+                192, 0, 2, 100, //
+                255, 255, 255, 0, //
+                0, 0, 0, 0, //
+                4, 3, 2, 1, //
+            ]
+            .as_slice(),
+        );
+
+        assert_eq!(result.unwrap_err(), ParseError::UnknownVersion(255, 2),);
+    }
+
+    #[test]
+    fn test_parse_empty_entry_part() {
+        let result = parser::parse(vec![2, 2, 0, 0].as_slice());
+
+        assert_eq!(result.unwrap_err(), ParseError::EmptyRIPEntry(4));
+    }
+
+    #[test]
+    fn test_parse_bytes_which_has_the_number_of_entries_that_exceeds_max_limit() {
+        let result = parser::parse(
+            vec![
+                2, 2, 0, 0, //
+                0, 2, 1, 2, 192, 0, 2, 101, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 1, //
+                0, 2, 1, 2, 192, 0, 2, 102, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 2, //
+                0, 2, 1, 2, 192, 0, 2, 103, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 3, //
+                0, 2, 1, 2, 192, 0, 2, 104, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 4, //
+                0, 2, 1, 2, 192, 0, 2, 105, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 5, //
+                0, 2, 1, 2, 192, 0, 2, 106, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 6, //
+                0, 2, 1, 2, 192, 0, 2, 107, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 7, //
+                0, 2, 1, 2, 192, 0, 2, 108, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 8, //
+                0, 2, 1, 2, 192, 0, 2, 109, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 9, //
+                0, 2, 1, 2, 192, 0, 2, 110, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 10, //
+                0, 2, 1, 2, 192, 0, 2, 111, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 11, //
+                0, 2, 1, 2, 192, 0, 2, 112, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 12, //
+                0, 2, 1, 2, 192, 0, 2, 113, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 13, //
+                0, 2, 1, 2, 192, 0, 2, 114, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 14, //
+                0, 2, 1, 2, 192, 0, 2, 115, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 15, //
+                0, 2, 1, 2, 192, 0, 2, 116, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 16, //
+                0, 2, 1, 2, 192, 0, 2, 117, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 17, //
+                0, 2, 1, 2, 192, 0, 2, 118, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 18, //
+                0, 2, 1, 2, 192, 0, 2, 119, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 19, //
+                0, 2, 1, 2, 192, 0, 2, 120, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 20, //
+                0, 2, 1, 2, 192, 0, 2, 121, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 21, //
+                0, 2, 1, 2, 192, 0, 2, 122, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 22, //
+                0, 2, 1, 2, 192, 0, 2, 123, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 23, //
+                0, 2, 1, 2, 192, 0, 2, 124, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 24, //
+                0, 2, 1, 2, 192, 0, 2, 125, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 25, //
+                0, 2, 1, 2, 192, 0, 2, 126, 255, 255, 255, 0, 192, 0, 2, 200, 0, 0, 0, 26, //
+            ]
+            .as_slice(),
+        );
+
+        assert_eq!(
+            result.unwrap_err(),
+            ParseError::MaxRIPEntriesNumberExceeded(504)
+        );
     }
 }

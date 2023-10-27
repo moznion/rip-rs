@@ -64,3 +64,45 @@ impl Serializable for Identifier {
         Ok(vec![((v & 0xff00) >> 8) as u8, (v & 0x00ff) as u8])
     }
 }
+#[cfg(test)]
+mod tests {
+    use crate::address_family::Identifier;
+    use crate::parser::ParseError;
+    use crate::serializer::{Serializable, SerializeError};
+
+    #[test]
+    fn test_parse() {
+        let parsed = Identifier::parse(0, vec![0x00, 0x00].as_slice()).unwrap();
+        assert_eq!(*parsed.get_value(), Identifier::Unspecified);
+        assert_eq!(parsed.get_cursor(), 2);
+        let parsed = Identifier::parse(0, vec![0x00, 0x02].as_slice()).unwrap();
+        assert_eq!(*parsed.get_value(), Identifier::IP);
+        assert_eq!(parsed.get_cursor(), 2);
+        let parsed = Identifier::parse(0, vec![0xff, 0xff].as_slice()).unwrap();
+        assert_eq!(*parsed.get_value(), Identifier::AuthenticationPresent);
+        assert_eq!(parsed.get_cursor(), 2);
+
+        let result = Identifier::parse(0, vec![0x00, 0x01].as_slice());
+        assert_eq!(
+            result.unwrap_err(),
+            ParseError::UnknownAddressFamilyIdentifier(1, 1)
+        );
+    }
+
+    #[test]
+    fn to_bytes() {
+        assert_eq!(
+            Identifier::Unspecified.to_bytes().unwrap(),
+            vec![0x00, 0x00]
+        );
+        assert_eq!(Identifier::IP.to_bytes().unwrap(), vec![0x00, 0x02]);
+        assert_eq!(
+            Identifier::AuthenticationPresent.to_bytes().unwrap(),
+            vec![0xff, 0xff]
+        );
+        assert_eq!(
+            Identifier::Unknown.to_bytes().unwrap_err(),
+            SerializeError::UnknownAddressFamilyIdentifier
+        );
+    }
+}
