@@ -1,6 +1,6 @@
 [package]
-name = "rip"
-version = "0.1.0"
+name = "rip-rs"
+version = "0.0.1"
 edition = "2021"
 authors = ["moznion <moznion@mail.moznion.net>"]
 description = "Parser and serializer library for RIP v1/v2 protocol"
@@ -8,7 +8,7 @@ license = "MIT"
 readme = "README.md"
 repository = "https://github.com/moznion/rip-rs"
 homepage = "https://github.com/moznion/rip-rs"
-documentation = "https://docs.rs/rip"
+documentation = "https://docs.rs/rip-rs"
 categories =  ["network-programming"]
 keywords = ["rip"]
 
