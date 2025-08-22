@@ -13,4 +13,4 @@ categories =  ["network-programming"]
 keywords = ["rip"]
 
 [dependencies]
-thiserror = "1.0.50"
+thiserror = "2.0.0"
